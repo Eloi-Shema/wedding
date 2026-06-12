@@ -93,7 +93,7 @@ export default function GalleryPage() {
       )}
 
       {!loading && photos.length > 0 && (
-        <div className="grid grid-cols-6 sm:grid-cols-3 gap-2 p-4">
+        <div className="grid grid-cols-4 sm:grid-cols-4 gap-2 p-4">
           {photos.map((photo) => (
             <button
               key={photo.id}
