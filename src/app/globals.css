@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: var(--font-cormorant), "Cormorant Garamond", serif;
+  --font-body: var(--font-inter), "Inter", sans-serif;
+
+  --color-gold: #C9A96E;
+  --color-gold-light: #E8D5B0;
+  --color-gold-muted: rgba(201, 169, 110, 0.30);
+  --color-surface: rgba(255, 255, 255, 0.10);
+  --color-dark: #0f0e0d;
+  --color-ink: #1a1208;
+}
+
+html, body {
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 0.9s linear infinite;
+}
