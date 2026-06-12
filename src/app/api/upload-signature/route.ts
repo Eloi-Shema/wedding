@@ -7,7 +7,7 @@ export async function GET() {
   const timestamp = Math.round(Date.now() / 1000);
 
   const signature = cloudinary.utils.api_sign_request(
-    { timestamp, folder: FOLDER, resource_type: "auto" },
+    { timestamp, folder: FOLDER },
     process.env.CLOUDINARY_API_SECRET!,
   );
 
@@ -17,6 +17,5 @@ export async function GET() {
     folder: FOLDER,
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     apiKey: process.env.CLOUDINARY_API_KEY,
-    resourceType: "auto",
   });
 }

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { BadgeCheck, Camera, Loader } from "lucide-react";
+import { BadgeCheck, Camera, Image, Loader } from "lucide-react";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
@@ -10,10 +10,22 @@ export default function HomePage() {
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [uploadCount, setUploadCount] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    const oversized = fileArray.filter((f) => f.size > 10 * 1024 * 1024);
+    if (oversized.length > 0) {
+      setErrorMsg(
+        `${oversized.length > 1 ? `${oversized.length} files are` : `"${oversized[0].name}" is`} too large. Max 10MB per file.`,
+      );
+      setUploadState("error");
+      return;
+    }
+
     setUploadState("uploading");
     setErrorMsg("");
 
@@ -38,7 +50,7 @@ export default function HomePage() {
 
     let successCount = 0;
 
-    for (const file of Array.from(files)) {
+    for (const file of fileArray) {
       // Post each file directly to Cloudinary
       const formData = new FormData();
       formData.append("file", file);
@@ -49,9 +61,10 @@ export default function HomePage() {
 
       try {
         const res = await fetch(
-          `https://api.cloudinary.com/v1_1/${sigData.cloudName}/${sigData.resourceType}/upload`,
+          `https://api.cloudinary.com/v1_1/${sigData.cloudName}/image/upload`,
           { method: "POST", body: formData },
         );
+
         if (res.ok) successCount++;
         else setErrorMsg("One or more uploads failed.");
       } catch {
@@ -92,7 +105,7 @@ export default function HomePage() {
           <p className="font-body text-[11px] font-medium tracking-[0.18em] uppercase text-text-gold-light/90">
             You&apos;re invited to share
           </p>
-          <h1 className="font-display text-[clamp(40px,11vw,58px)] font-light leading-[1.1] tracking-wide text-white">
+          <h1 className="font-display text-[clamp(40px,11vw,58px)] leading-[1.1] tracking-wide text-white">
             Your moments from our wedding day
           </h1>
           <p className="font-display text-lg italic tracking-wider text-shadow-gold-light">
@@ -100,18 +113,27 @@ export default function HomePage() {
           </p>
         </header>
 
-        <div className="w-full bg-white/10 backdrop-blur-xl border border-gold/30 rounded-2xl p-8 flex flex-col items-center gap-3 min-h-35 justify-center">
+        <div className="w-full bg-white/10 backdrop-blur-xl border border-gold/30 rounded-md p-8 flex flex-col items-center gap-3 min-h-35 justify-center">
           {uploadState === "idle" && (
             <>
               <button
-                className="flex items-center justify-center gap-3 w-full bg-gold text-ink rounded-[14px] py-4 px-7 font-body text-base font-medium active:scale-[0.97] active:bg-[#f0b348] transition-all duration-150 cursor-pointer"
-                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center justify-center gap-3 w-full bg-gold text-ink border border-gold/25 rounded-md py-4 px-7 font-body text-base font-medium active:scale-[0.97] active:bg-[#f0b348] transition-all duration-150 cursor-pointer"
+                onClick={() => galleryInputRef.current?.click()}
               >
-                <Camera />
-                Share your moments
+                <Image size={18} />
+                Upload from gallery
+              </button>
+              <button
+                className="flex items-center justify-center gap-3 w-full bg-white/10 text-white rounded-md py-4 px-7 font-body text-base font-medium active:scale-[0.97] active:bg-white/20 transition-all duration-150 cursor-pointer"
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                <Camera size={18} />
+                Take a photo or video
               </button>
               <p className="font-body text-xs text-white/70 text-center">
                 Choose from your gallery or take a new photo/video
+                <br />
+                <span className="font-medium">Max 10MB per file</span>
               </p>
             </>
           )}
@@ -139,11 +161,11 @@ export default function HomePage() {
 
           {uploadState === "error" && (
             <div className="flex flex-col items-center gap-3">
-              <p className="font-body text-sm text-red-300 text-center">
+              <p className="font-body text-sm text-red-200 text-center">
                 {errorMsg || "Something went wrong."}
               </p>
               <button
-                className="border border-gold text-gold rounded-xl px-6 py-2.5 font-body text-sm cursor-pointer"
+                className="border border-gold text-gold rounded-md px-6 py-2.5 font-body text-sm cursor-pointer"
                 onClick={() => {
                   setUploadState("idle");
                   setErrorMsg("");
@@ -155,7 +177,15 @@ export default function HomePage() {
           )}
 
           <input
-            ref={fileInputRef}
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*,video/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleInputChange}
+          />
+          <input
+            ref={galleryInputRef}
             type="file"
             accept="image/*,video/*"
             multiple

@@ -45,7 +45,7 @@ export default function GalleryPage() {
           href="/"
           className="font-body flex items-center text-xs text-gold tracking-wide"
         >
-          <ArrowLeft className="mr-2" size={14} /> Share your moment as well
+          <ArrowLeft className="mr-2" size={14} /> Share your moment
         </Link>
         <h1 className="font-display text-3xl font-light text-white tracking-wide">
           Moments from our wedding day
@@ -67,7 +67,7 @@ export default function GalleryPage() {
         <div className="flex flex-col items-center gap-4 py-24 px-6 text-center">
           <p className="font-body text-sm text-red-300">{error}</p>
           <button
-            className="border border-gold text-gold rounded-xl px-6 py-2.5 font-body text-sm"
+            className="border border-gold text-gold rounded-md px-6 py-2.5 font-body text-sm"
             onClick={fetchPhotos}
           >
             Retry
@@ -85,7 +85,7 @@ export default function GalleryPage() {
           </p>
           <Link
             href="/"
-            className="bg-gold text-ink rounded-xl px-7 py-3.5 font-body text-sm font-medium"
+            className="bg-gold text-ink rounded-md px-7 py-3.5 font-body text-sm font-medium"
           >
             Share a photo
           </Link>
@@ -95,7 +95,6 @@ export default function GalleryPage() {
       {!loading && photos.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 p-1">
           {photos.map((photo) => (
-            // Replace the grid tile's <img> with this — renders correctly for both types
             <button
               key={photo.id}
               className="aspect-square overflow-hidden bg-white/5 cursor-pointer active:opacity-80 transition-opacity relative"
@@ -109,7 +108,6 @@ export default function GalleryPage() {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
-              {/* Show a play icon overlay for videos so guests know it's a video */}
               {photo.type === "video" && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
@@ -132,13 +130,13 @@ export default function GalleryPage() {
 
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 bg-black/93 flex flex-col items-center justify-center gap-4 p-5"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center gap-4 p-5"
           onClick={() => setLightbox(null)}
           role="dialog"
           aria-modal="true"
         >
           <button
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center text-lg leading-none"
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center text-lg leading-none cursor-pointer"
             aria-label="Close"
           >
             ✕
@@ -147,7 +145,7 @@ export default function GalleryPage() {
           {lightbox.type === "video" ? (
             <video
               src={lightbox.url}
-              className="max-w-full max-h-[calc(100dvh-140px)] rounded-lg"
+              className="max-w-full max-h-[calc(100dvh-140px)] rounded-md"
               controls
               autoPlay
               playsInline // required for iOS autoplay
@@ -157,14 +155,14 @@ export default function GalleryPage() {
             <img
               src={lightbox.url}
               alt=""
-              className="max-w-full max-h-[calc(100dvh-140px)] rounded-lg object-contain"
+              className="max-w-full max-h-[calc(100dvh-140px)] rounded-md object-contain"
               onClick={(e) => e.stopPropagation()}
             />
           )}
           <a
             href={lightbox.url}
             download
-            className="border border-gold text-gold rounded-xl px-6 py-2.5 font-body text-sm"
+            className="border border-gold text-gold rounded-md px-6 py-2.5 font-body text-sm cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           >
             Save {lightbox.type === "video" ? "video" : "photo"}
