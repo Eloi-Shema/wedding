@@ -93,7 +93,7 @@ export default function GalleryPage() {
       )}
 
       {!loading && photos.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 p-1">
+        <div className="grid grid-cols-6 sm:grid-cols-3 gap-2 p-4">
           {photos.map((photo) => (
             <button
               key={photo.id}
@@ -101,7 +101,6 @@ export default function GalleryPage() {
               onClick={() => setLightbox(photo)}
               aria-label={`View ${photo.type} from ${new Date(photo.createdTime).toLocaleDateString()}`}
             >
-              {/* Thumbnail is always a JPEG (Cloudinary extracts a frame for videos) */}
               <img
                 src={photo.thumbnail}
                 alt=""

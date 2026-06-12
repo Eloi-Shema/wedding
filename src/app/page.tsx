@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { BadgeCheck, Camera, Image, Loader } from "lucide-react";
+import { BadgeCheck, Image, Loader } from "lucide-react";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
@@ -11,7 +11,6 @@ export default function HomePage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [uploadCount, setUploadCount] = useState(0);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -105,7 +104,7 @@ export default function HomePage() {
           <p className="font-body text-[11px] font-medium tracking-[0.18em] uppercase text-text-gold-light/90">
             You&apos;re invited to share
           </p>
-          <h1 className="font-display text-[clamp(40px,11vw,58px)] leading-[1.1] tracking-wide text-white">
+          <h1 className="font-display text-[clamp(40px,11vw,58px)] leading-[1.1] tracking-wide text-white font-bold">
             Your moments from our wedding day
           </h1>
           <p className="font-display text-lg italic tracking-wider text-shadow-gold-light">
@@ -122,13 +121,6 @@ export default function HomePage() {
               >
                 <Image size={18} />
                 Upload from gallery
-              </button>
-              <button
-                className="flex items-center justify-center gap-3 w-full bg-white/10 text-white rounded-md py-4 px-7 font-body text-base font-medium active:scale-[0.97] active:bg-white/20 transition-all duration-150 cursor-pointer"
-                onClick={() => cameraInputRef.current?.click()}
-              >
-                <Camera size={18} />
-                Take a photo or video
               </button>
               <p className="font-body text-xs text-white/70 text-center">
                 Choose from your gallery or take a new photo/video
@@ -176,14 +168,6 @@ export default function HomePage() {
             </div>
           )}
 
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*,video/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleInputChange}
-          />
           <input
             ref={galleryInputRef}
             type="file"
