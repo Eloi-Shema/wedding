@@ -59,8 +59,10 @@ export default function HomePage() {
       formData.append("folder", sigData.folder);
 
       try {
+        const resourceType = file.type.startsWith("video/") ? "video" : "image";
+
         const res = await fetch(
-          `https://api.cloudinary.com/v1_1/${sigData.cloudName}/image/upload`,
+          `https://api.cloudinary.com/v1_1/${sigData.cloudName}/${resourceType}/upload`,
           { method: "POST", body: formData },
         );
 
