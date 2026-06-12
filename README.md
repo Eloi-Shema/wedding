@@ -61,7 +61,7 @@ Go to [qr-code-generator.com](https://qr-code-generator.com), enter your Vercel 
 
 ## Notes
 
-- Max photo size: 20MB
+- Max size for each file: 10MB
 - Cloudinary free tier: 25GB storage, plenty for a wedding
 - Gallery auto-refreshes every 30 seconds
 - After the wedding, download your full folder from the Cloudinary Media Library
