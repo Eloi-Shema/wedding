@@ -81,10 +81,10 @@ export default function GalleryPage() {
       {!loading && !error && photos.length === 0 && (
         <div className="flex flex-col items-center gap-4 py-24 px-6 text-center">
           <p className="font-display text-3xl font-light text-white/90">
-            All Photos snapped were shared to married couple!
+            All Photos and videos snapped will be shared to married couple!
           </p>
           <p className="font-body text-sm text-white/60">
-            Still have more? Share them
+            Have some? Share them
           </p>
           <Link
             href="/"
