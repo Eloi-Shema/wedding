@@ -17,7 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Share the Moment • Innocent & Patience💍",
+  title: "Sheja & Davy • Share Your Best Moments",
   description: "Upload and view photos from the celebration",
 };
 
