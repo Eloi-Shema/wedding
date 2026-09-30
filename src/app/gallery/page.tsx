@@ -10,7 +10,7 @@ type Photo = {
   createdTime: string;
   type: "image" | "video";
   url: string;
-  thumbnail: string;
+  thumbnail: string | null;
 };
 
 export default function GalleryPage() {
@@ -34,7 +34,10 @@ export default function GalleryPage() {
 
   useEffect(() => {
     fetchPhotos();
-    const interval = setInterval(fetchPhotos, 30_000);
+    // Don't poll while the phone screen is off / tab is in the background
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchPhotos();
+    }, 30_000);
     return () => clearInterval(interval);
   }, [fetchPhotos]);
 
@@ -101,12 +104,14 @@ export default function GalleryPage() {
               onClick={() => setLightbox(photo)}
               aria-label={`View ${photo.type} from ${new Date(photo.createdTime).toLocaleDateString()}`}
             >
-              <img
-                src={photo.thumbnail}
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+              {photo.thumbnail && (
+                <img
+                  src={photo.thumbnail}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              )}
               {photo.type === "video" && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">

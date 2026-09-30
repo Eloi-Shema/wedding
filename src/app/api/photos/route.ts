@@ -1,65 +1,85 @@
 import { NextResponse } from "next/server";
-import cloudinary, { FOLDER } from "@/src/lib/cloudinary";
+import { ListObjectsV2Command, type _Object } from "@aws-sdk/client-s3";
+import { r2, BUCKET, PUBLIC_URL } from "@/src/lib/r2";
+import { VIDEO_EXTENSIONS } from "@/src/lib/config";
 
 export const runtime = "nodejs";
 
+const MAX_LISTED = 5000;
+
+async function listAll(prefix: string): Promise<_Object[]> {
+  const objects: _Object[] = [];
+  let token: string | undefined;
+  do {
+    const res = await r2.send(
+      new ListObjectsV2Command({
+        Bucket: BUCKET,
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    objects.push(...(res.Contents ?? []));
+    token = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (token && objects.length < MAX_LISTED);
+  return objects;
+}
+
 export async function GET() {
   try {
-    // Fetch images and videos in two separate searches
-    const [imageResult, videoResult] = await Promise.all([
-      cloudinary.search
-        .expression(`folder:${FOLDER} AND resource_type:image`)
-        .sort_by("created_at", "desc")
-        .max_results(200)
-        .execute(),
-      cloudinary.search
-        .expression(`folder:${FOLDER} AND resource_type:video`)
-        .sort_by("created_at", "desc")
-        .max_results(50)
-        .execute(),
+    const [uploads, thumbs] = await Promise.all([
+      listAll("uploads/"),
+      listAll("thumbs/"),
     ]);
 
-    const mapAsset = (asset: {
-      public_id: string;
-      created_at: string;
-      secure_url: string;
-      resource_type: string;
-    }) => ({
-      id: asset.public_id,
-      createdTime: asset.created_at,
-      type: asset.resource_type as "image" | "video", // passed to frontend to decide <img> vs <video>
-      url: asset.secure_url,
-      thumbnail:
-        asset.resource_type === "video"
-          ? // For videos: grab a frame at 1s as the poster image
-            cloudinary.url(asset.public_id, {
-              resource_type: "video",
-              format: "jpg", // extract a JPEG frame
-              start_offset: "1", // at 1 second in
-              width: 400,
-              height: 400,
-              crop: "fill",
-              secure: true,
-            })
-          : cloudinary.url(asset.public_id, {
-              width: 400,
-              height: 400,
-              crop: "fill",
-              quality: "auto",
-              fetch_format: "auto",
-              secure: true,
-            }),
-    });
+    // thumbs/<id>.jpg belongs to uploads/<id>.<ext>
+    const thumbIds = new Set(
+      thumbs.flatMap((t) =>
+        t.Key ? [t.Key.slice("thumbs/".length).replace(/\.jpg$/, "")] : [],
+      ),
+    );
 
-    // Merge and re-sort by date descending
-    const photos = [...imageResult.resources, ...videoResult.resources]
-      .map(mapAsset)
+    const photos = uploads
+      .flatMap((o) => {
+        if (!o.Key || !o.LastModified) return [];
+        const file = o.Key.slice("uploads/".length);
+        const dot = file.lastIndexOf(".");
+        if (dot < 1) return [];
+        const id = file.slice(0, dot);
+        const type = VIDEO_EXTENSIONS.has(file.slice(dot + 1).toLowerCase())
+          ? "video"
+          : "image";
+        const url = `${PUBLIC_URL}/${o.Key}`;
+
+        return [
+          {
+            id: o.Key,
+            createdTime: o.LastModified.toISOString(),
+            type: type as "image" | "video",
+            url,
+            // No thumbnail: fall back to the full image; videos get a placeholder tile.
+            thumbnail: thumbIds.has(id)
+              ? `${PUBLIC_URL}/thumbs/${id}.jpg`
+              : type === "image"
+                ? url
+                : null,
+          },
+        ];
+      })
       .sort(
         (a, b) =>
           new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime(),
       );
 
-    return NextResponse.json({ photos });
+    return NextResponse.json(
+      { photos },
+      {
+        // Every guest's gallery polls this. Let the CDN answer most of them
+        // so R2 only gets listed every ~10s (LIST calls count against the free tier).
+        headers: {
+          "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+        },
+      },
+    );
   } catch (err) {
     console.error("Fetch photos error:", err);
     return NextResponse.json(

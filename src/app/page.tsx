@@ -3,87 +3,84 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { BadgeCheck, Image, Loader } from "lucide-react";
+import { MAX_FILE_MB } from "@/src/lib/config";
+import { uploadFiles, type Progress } from "@/src/lib/upload";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
 export default function HomePage() {
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [notice, setNotice] = useState("");
   const [uploadCount, setUploadCount] = useState(0);
+  const [progress, setProgress] = useState<Progress>({
+    done: 0,
+    total: 0,
+    fraction: 0,
+  });
+  const [failedFiles, setFailedFiles] = useState<File[]>([]);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
-
-    const fileArray = Array.from(files);
-    const oversized = fileArray.filter((f) => f.size > 10 * 1024 * 1024);
-    if (oversized.length > 0) {
-      setErrorMsg(
-        `${oversized.length > 1 ? `${oversized.length} files are` : `"${oversized[0].name}" is`} too large. Max 10MB per file.`,
-      );
-      setUploadState("error");
-      return;
-    }
+  async function handleFiles(files: File[]) {
+    if (files.length === 0) return;
 
     setUploadState("uploading");
     setErrorMsg("");
+    setNotice("");
+    setFailedFiles([]);
+    setProgress({ done: 0, total: files.length, fraction: 0 });
 
-    // Get a signed signature from server (tiny request, no file)
-    let sigData: {
-      timestamp: number;
-      signature: string;
-      folder: string;
-      cloudName: string;
-      apiKey: string;
-      resourceType: string;
-    };
+    // Keep the screen awake: a phone that locks mid-upload pauses the upload.
+    let wakeLock: WakeLockSentinel | null = null;
+    try {
+      wakeLock = (await navigator.wakeLock?.request("screen")) ?? null;
+    } catch {}
 
     try {
-      const sigRes = await fetch("/api/upload-signature");
-      sigData = await sigRes.json();
+      const { succeeded, failed, skipped } = await uploadFiles(
+        files,
+        setProgress,
+      );
+
+      if (skipped.length > 0) {
+        setNotice(
+          skipped.length === 1
+            ? `"${skipped[0].file.name}" was skipped (${skipped[0].reason}).`
+            : `${skipped.length} files were skipped (unsupported or over ${MAX_FILE_MB}MB).`,
+        );
+      }
+      setUploadCount((c) => c + succeeded.length);
+      setFailedFiles(failed);
+
+      if (failed.length > 0) {
+        setErrorMsg(
+          succeeded.length > 0
+            ? `${succeeded.length} shared, but ${failed.length} couldn't be uploaded.`
+            : `${failed.length === 1 ? "Your file" : "Your files"} couldn't be uploaded. Check your connection and try again.`,
+        );
+        setUploadState("error");
+      } else if (succeeded.length > 0) {
+        setUploadState("success");
+        setTimeout(
+          () => setUploadState("idle"),
+          skipped.length > 0 ? 6000 : 3500,
+        );
+      } else {
+        // Nothing uploadable at all (every file was skipped)
+        setErrorMsg("Those files can't be uploaded.");
+        setUploadState("error");
+      }
     } catch {
       setErrorMsg("Connection error. Please try again.");
+      setFailedFiles(files);
       setUploadState("error");
-      return;
-    }
-
-    let successCount = 0;
-
-    for (const file of fileArray) {
-      // Post each file directly to Cloudinary
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("timestamp", String(sigData.timestamp));
-      formData.append("signature", sigData.signature);
-      formData.append("api_key", sigData.apiKey);
-      formData.append("folder", sigData.folder);
-
-      try {
-        const resourceType = file.type.startsWith("video/") ? "video" : "image";
-
-        const res = await fetch(
-          `https://api.cloudinary.com/v1_1/${sigData.cloudName}/${resourceType}/upload`,
-          { method: "POST", body: formData },
-        );
-
-        if (res.ok) successCount++;
-        else setErrorMsg("One or more uploads failed.");
-      } catch {
-        setErrorMsg("Connection error. Please try again.");
-      }
-    }
-
-    if (successCount > 0) {
-      setUploadCount((c) => c + successCount);
-      setUploadState("success");
-      setTimeout(() => setUploadState("idle"), 3500);
-    } else {
-      setUploadState("error");
+    } finally {
+      wakeLock?.release().catch(() => {});
     }
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    handleFiles(e.target.files);
+    handleFiles(Array.from(e.target.files ?? []));
     e.target.value = "";
   }
 
@@ -118,7 +115,7 @@ export default function HomePage() {
           {uploadState === "idle" && (
             <>
               <button
-                className="flex items-center justify-center gap-3 w-full bg-gold text-ink border border-gold/25 rounded-md py-4 px-7 font-body text-base font-medium active:scale-[0.97] active:bg-[#f0b348] transition-all duration-150 cursor-pointer"
+                className="flex items-center justify-center gap-3 w-full bg-gold text-ink border border-gold/25 rounded-md py-4 px-7 font-body text-base font-medium active:scale-[0.97] active:bg-gold/90 transition-all duration-150 cursor-pointer"
                 onClick={() => galleryInputRef.current?.click()}
               >
                 <Image size={18} />
@@ -127,16 +124,31 @@ export default function HomePage() {
               <p className="font-body text-xs text-white/70 text-center">
                 Choose from your gallery or take a new photo/video
                 <br />
-                <span className="font-medium">Max 10MB per file</span>
+                <span className="font-medium">
+                  Max {MAX_FILE_MB}MB per file
+                </span>
               </p>
             </>
           )}
 
           {uploadState === "uploading" && (
-            <div className="flex items-center gap-3">
-              <Loader className="text-gold animate-spin" size={20} />
-              <p className="font-display text-white animate-pulse">
-                Uploading your moment…
+            <div className="flex flex-col items-center gap-3 w-full">
+              <div className="flex items-center gap-3">
+                <Loader className="text-gold animate-spin" size={20} />
+                <p className="font-display text-white animate-pulse">
+                  {progress.total > 1
+                    ? `Uploading ${Math.min(progress.done + 1, progress.total)} of ${progress.total}…`
+                    : "Uploading your moment…"}
+                </p>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-white/15 overflow-hidden">
+                <div
+                  className="h-full bg-gold transition-[width] duration-200"
+                  style={{ width: `${Math.round(progress.fraction * 100)}%` }}
+                />
+              </div>
+              <p className="font-body text-xs text-white/60">
+                Keep this page open until it finishes
               </p>
             </div>
           )}
@@ -150,6 +162,11 @@ export default function HomePage() {
                   : `${uploadCount} photos shared!`}
               </p>
               <p className="font-body text-sm text-white/70">Thank you 💛</p>
+              {notice && (
+                <p className="font-body text-xs text-white/60 text-center">
+                  {notice}
+                </p>
+              )}
             </div>
           )}
 
@@ -158,15 +175,35 @@ export default function HomePage() {
               <p className="font-body text-sm text-red-200 text-center">
                 {errorMsg || "Something went wrong."}
               </p>
+              {notice && (
+                <p className="font-body text-xs text-white/60 text-center">
+                  {notice}
+                </p>
+              )}
               <button
                 className="border border-gold text-gold rounded-md px-6 py-2.5 font-body text-sm cursor-pointer"
                 onClick={() => {
-                  setUploadState("idle");
-                  setErrorMsg("");
+                  if (failedFiles.length > 0) {
+                    handleFiles(failedFiles); // retry only what failed
+                  } else {
+                    setUploadState("idle");
+                    setErrorMsg("");
+                  }
                 }}
               >
-                Try again
+                {failedFiles.length > 0 ? "Retry failed uploads" : "Try again"}
               </button>
+              {failedFiles.length > 0 && (
+                <button
+                  className="font-body text-xs text-white/60 underline cursor-pointer"
+                  onClick={() => {
+                    setFailedFiles([]);
+                    setUploadState("idle");
+                  }}
+                >
+                  Cancel
+                </button>
+              )}
             </div>
           )}
 
