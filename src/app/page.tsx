@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { BadgeCheck, Image, Loader } from "lucide-react";
+import { BadgeCheck, ChevronRight, Image, Loader } from "lucide-react";
 import { MAX_FILE_MB } from "@/src/lib/config";
 import { uploadFiles, type Progress } from "@/src/lib/upload";
 
@@ -88,7 +88,7 @@ export default function HomePage() {
     <main className="relative min-h-dvh flex flex-col items-center justify-center px-5 py-10">
       <div className="fixed inset-0 z-0 bg-ink" aria-hidden="true">
         <img
-          src="/inn.jpg"
+          src="/inn.webp"
           alt=""
           className="w-full h-full object-cover object-top"
           onError={(e) => {
@@ -103,11 +103,11 @@ export default function HomePage() {
           <p className="font-body text-[11px] font-medium tracking-[0.18em] uppercase text-text-gold-light/90">
             You&apos;re invited to share
           </p>
-          <h1 className="font-display text-[clamp(40px,11vw,58px)] leading-[1.1] tracking-wide text-white font-bold">
-            Your moments from our wedding day
+          <h1 className="font-display text-[clamp(40px,11vw,60px)] leading-[1.1] tracking-wide text-white font-bold">
+            Your best moments from our wedding day
           </h1>
-          <p className="font-display text-lg italic tracking-wider text-shadow-gold-light">
-            Snap a moment, share the love
+          <p className="font-display text-lg tracking-wider text-shadow-gold-light">
+            <span className="italic mr-2">Snap and Share</span>📸
           </p>
         </header>
 
@@ -122,9 +122,9 @@ export default function HomePage() {
                 Upload from gallery
               </button>
               <p className="font-body text-xs text-white/70 text-center">
-                Choose from your gallery or take a new photo/video
+                Choose photo/video from your gallery
                 <br />
-                <span className="font-medium">
+                <span className="font-semibold">
                   Max {MAX_FILE_MB}MB per file
                 </span>
               </p>
@@ -181,7 +181,7 @@ export default function HomePage() {
                 </p>
               )}
               <button
-                className="border border-gold text-gold rounded-md px-6 py-2.5 font-body text-sm cursor-pointer"
+                className="border-2 border-gold text-gold rounded-md px-6 py-2.5 font-body text-sm cursor-pointer"
                 onClick={() => {
                   if (failedFiles.length > 0) {
                     handleFiles(failedFiles); // retry only what failed
@@ -219,9 +219,12 @@ export default function HomePage() {
 
         <Link
           href="/gallery"
-          className="font-body text-sm text-white/70 tracking-widest border-b border-white/25 pb-0.5 hover:text-gold-light transition-colors"
+          className="flex items-center font-body text-sm text-white tracking-widest hover:text-gold-light transition-colors"
         >
-          View all snapped moments →
+          <span className="border-b border-white/40 pb-0.5">
+            View all snapped moments
+          </span>{" "}
+          <ChevronRight size={20} />
         </Link>
       </div>
     </main>

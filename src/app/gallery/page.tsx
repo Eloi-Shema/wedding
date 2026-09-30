@@ -164,9 +164,8 @@ export default function GalleryPage() {
             />
           )}
           <a
-            href={lightbox.url}
-            download
-            className="border border-gold text-gold rounded-md px-6 py-2.5 font-body text-sm cursor-pointer"
+            href={`/api/download?key=${encodeURIComponent(lightbox.id)}`}
+            className="border-2 border-gold text-gold rounded-md px-6 py-2.5 font-body text-sm cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           >
             Save {lightbox.type === "video" ? "video" : "photo"}
